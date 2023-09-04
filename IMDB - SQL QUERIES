@@ -1,0 +1,110 @@
+-- check to see avg score of all movies 
+select avg(score) as score_avg
+from dbo.imdb_movies$;
+
+-- get the total profit of movies and order them from most profitable to least
+select orig_title,revenue - budget_x
+as profit_or_loss
+from dbo.imdb_movies$
+order by profit_or_loss  desc ;
+
+-- get the total profit of movies and order them from least to most profitable
+select orig_title,revenue - budget_x
+as profit_or_loss
+from dbo.imdb_movies$
+order by profit_or_loss  asc;
+
+-- count number of distinct languages
+select count(distinct orig_lang) as lang_count
+from dbo.imdb_movies$;
+
+-- count number of distinct country releases
+select count(distinct country) as country_count
+from dbo.imdb_movies$;
+
+-- count # of movie releases each country has 
+select country,count(country) as country_counts
+from dbo.imdb_movies$
+group by country
+order by country_counts desc;
+
+-- check to see most profitable movie countries
+select country,sum(revenue-budget_x) as profit
+from dbo.imdb_movies$
+group by country
+order by profit desc;
+
+-- check to see most profitable movie languages
+select orig_lang,sum(revenue - budget_x) as profit
+from dbo.imdb_movies$
+group by orig_lang
+order by profit desc;
+
+-- check to see most profitable movie within given time period
+select orig_title,date_x,revenue - budget_x as profit
+from dbo.imdb_movies$
+where month(date_x) between 1 and 6 and YEAR(date_x) between 2020 and 2022
+order by profit desc;
+
+-- check to see which movies had a budget of over 100 million 
+select orig_title,budget_x
+from dbo.imdb_movies$
+where budget_x > 100000000
+order by budget_x desc;
+
+-- check to see which movies had a budget of under 10 million 
+select orig_title,budget_x
+from dbo.imdb_movies$
+where budget_x < 10000000
+order by budget_x desc;
+
+-- check to see specific genres of a movie
+select orig_title,genre
+from dbo.imdb_movies$
+where genre like'%action%' and genre like'%romance%';
+
+-- check to see specific crew and revenue associated with member
+select orig_title,crew,revenue
+from dbo.imdb_movies$
+where crew like'%James Cameron%' ;
+
+-- check to see number of movies released by year
+select year(date_x),count(status) as num_release
+from dbo.imdb_movies$
+group by year(date_x)
+order by year(date_x) desc;
+
+-- check to see number of movies released by year and years profit
+select year(date_x) as release_year,round(sum(revenue-budget_x),2) as yearly_profit
+from dbo.imdb_movies$
+group by year(date_x)
+order by year(date_x) desc;
+
+CASE Uses
+-- check to see imdb score and give it a general review depending on score
+ select score,orig_title,
+ case when score >=90 then 'great'
+ when score between 80 and 90 then 'good'
+ when score between 60 and 80 then 'okay'
+ when score between 40 and 50 then 'poor'
+ else 'bad'
+	end as movie_rating
+	from dbo.imdb_movies$
+	order by score desc;
+
+select orig_title,score,budget_x,(revenue/budget_x * 100) as profit_percent,
+case when ((revenue/budget_x )* 100) >= 250 and score > 80 
+then 'profitable & Liked'
+when ((revenue/budget_x )* 100) <=200 and score > 90 
+then 'unprofitable but well received'
+when (revenue/budget_x * 100) between 200 and 250  and score between 70 and 80 
+then 'profitable & Liked'
+when (revenue/budget_x * 100) > 400 and score < 60 
+then 'Sequel Possiblity'
+when (revenue/budget_x * 100) > 500  and score > 90 
+then 'Sequel now'
+else 'unprofitable'
+	end as company_sentiment
+	from dbo.imdb_movies$
+	order by score desc;
+
