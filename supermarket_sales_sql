@@ -1,0 +1,140 @@
+-- Rename date column to sale_date 
+execute sp_rename 'market.Date', 'sale_date', 'Column'
+
+
+-- create index of most called upon columns to speed up searchtime
+create index market_idx
+on market (Invoice_id,product_line,gross_income)
+
+
+--Find gross by city
+select  City,sum(gross_income) as gross
+from market
+group by City 
+
+-- check total gross by members vs non-members 
+select Customer_type, sum(gross_income) as member_income
+from market
+group by Customer_type
+
+-- check to see how much income is generated through different payment methods
+select Payment,sum(gross_income) as income_by_payment
+from market
+group by Payment
+
+-- calculates how many units of the product line is sold 
+select Product_line,Sum(quantity) as total_units_sold
+from market
+group by Product_line
+order by total_units_sold asc
+
+--Find average rating by product line
+select Product_line,round(avg(Rating),2) as avg_rating
+from market
+group by Product_line
+order by avg_rating desc
+
+--Find average unit price by department and compare 
+select Invoice_ID,Product_line,Unit_price, avg(Unit_price) over(partition by Product_line) as avg_unit_price
+from market
+
+
+
+
+
+
+
+
+
+
+
+
+
+--Check to see busiest hour of stores according to sales
+select hours,
+count(Invoice_ID) as Number_of_orders,
+round(sum(Total),2) as Total_sales
+from(
+	select Invoice_ID,
+			Total,
+			Time,
+			left(Time,2) as Hours
+			from market) sub  
+			group by Hours
+			order by Hours asc
+
+
+-- create a temp table to check average sales by date 
+CREATE TABLE #temp_sales_day(
+sale_date Date,
+Total float,
+);
+
+Insert into #temp_sales_day
+select 
+sale_date,round(avg(Total),2) as total_sales
+from market 
+group by sale_date
+order by sale_date
+;
+
+select * from #temp_sales_days
+
+
+
+
+-- create cte to determine count of payment methods for Females
+with gender_payment as (
+select Gender,Payment
+from market
+)
+select gender,
+sum(case when payment = 'Ewallet' then 1 else 0 End) as Ewallet,
+sum(case when payment = 'Credit card' then 1 else 0 End) as Credit_card,
+sum(case when payment = 'Cash' then 1 else 0 End) as Cash
+from gender_payment 
+where Gender = 'Female'
+group by Gender 
+
+-- create cte to determine count of payment methods for males
+with gender_payment as (
+select Gender,Payment
+from market
+)
+select gender,
+sum(case when payment = 'Ewallet' then 1 else 0 End) as Ewallet,
+sum(case when payment = 'Credit card' then 1 else 0 End) as Credit_card,
+sum(case when payment = 'Cash' then 1 else 0 End) as Cash
+from gender_payment 
+where Gender = 'Male'
+group by Gender 
+
+-- cte used to create a column of average gross by branch and compare it to each locations gross 
+with profit as (
+select Branch,avg(gross_income) as gross
+from market
+group by Branch)
+select market.Invoice_ID,market.Branch,market.City,market.gross_income,profit.gross
+from market
+join profit
+on market.Branch = Profit.Branch
+
+
+--cte used to create a column of the max gross by branch and compare to those in same branch
+with profit as (
+select Branch,max(gross_income) as gross
+from market
+group by Branch)
+select market.Invoice_ID,market.Branch,market.City,market.gross_income,profit.gross
+from market
+join profit
+on market.Branch = Profit.Branch
+
+
+-- Drops index
+Drop Index IF EXISTS market_idx;
+
+
+
+
+
